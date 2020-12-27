@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import cnames
 from matplotlib import animation
 
-N_trajectories = 2
+N_trajectories = 1
 phase = 0.0 # show initial phase of B1 field
 phase_of_2nd_B1_pulse = 0
 field_freq = 200.0
@@ -18,9 +18,11 @@ Nuclei_name = 'H'
 max_range = 4000
 cyc = 2.0
 cyc1 = 2.0; cyc2 = 0
+
+free_precc_time = 0.01
 time_cyc1 = cyc1 * 1.0 / Larmor_freq_H
 time= cyc * 1.0 / Larmor_freq_H
-time_final = time + 0.005
+time_final = 2 * time + free_precc_time
 dt = time_final / max_range
 def nuclear_name(name):
     global gamma
@@ -38,6 +40,7 @@ B_1 = fac * np.pi/2.0/time_cyc1/267513000.0
 B_1_initial = fac * np.pi/2.0/time_cyc1/267513000.0
 
 B_0 = 2.0 * np.pi * Larmor_freq_H/267513000.0
+dB_0 = 0*B_0/10
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -57,16 +60,17 @@ def lorentz_deriv(y,t0):
     w_l = gamma * B_0
     w1 = 2.0 * np.pi * field_freq
     """Compute the time-derivative of a Lorentz system."""
-    if y[3] > time:
+    if (y[3] > time) and (y[3] < time + free_precc_time):
         w = 0.0
-        if (y[3]-time)< dt/6000:
-            print (y, np.arctan2(y[0],y[1])*180/np.pi)
+       # if (y[3]-time)< dt/6000:
+        #    print (y, np.arctan2(y[0],y[1])*180/np.pi)
 
-    if y[3] < (cyc1 /field_freq):
-        phase_of_B1_pulse = 0.0
+    if y[3] > time + free_precc_time:
+        w = gamma * B_1
+        B_0 = 2.0 * np.pi * Larmor_freq_H / 267513000.0 + dB_0
 
-    if y[3] > (cyc1 /field_freq):
-        phase_of_B1_pulse = (phase_of_2nd_B1_pulse * np.pi/180.0) - (w1 * cyc1 / field_freq)
+
+
 
         # with liniealy polarized magnetic field with sin wt
     #return [w_l * y[1], w * y[2] *np.sin(w1 * y[3]) - w_l * y[0], - w * y[1] *np.sin(w1 * y[3]), 1.0]
@@ -117,7 +121,7 @@ def plot_Mz_vs_B1(A,B,C):
 
 # Choose random starting points, uniformly distributed from -15 to 15
 #np.random.seed(1)
-x0 = [[0.0, 0.0, 1.0, 0.0 ],[1.0,0.0,0.0,0.0]] # -15 + 30 * np.random.random((N_trajectories, 3))
+x0 = [[0.0, 0.0, 1.0, 0.0 ],[0.0,0.0,1.0,0.0]] # -15 + 30 * np.random.random((N_trajectories, 3))
 
 t = np.linspace(0, time_final , max_range) # it was (0, 0.04, 2000)
 
@@ -234,7 +238,7 @@ def init():
 def animate(i):
     global field_freq, cyc, dt
     # we'll step two time-steps per frame.  This leads to nice results.
-    i = (50 * i) % x_t.shape[1]
+    i = (20 * i) % x_t.shape[1]
 
     for line, pt, xi in zip(lines, pts, x_t):
         x, y, z, tt = xi[:i].T
@@ -249,7 +253,7 @@ def animate(i):
     num = float(i) * dt * 1000.0
     num1 = '{:04.3f}'.format(num)
     lab = str(num1) + 'msec'
-    if num / 1000.0 > cyc * (1.0 / field_freq):
+    if (num / 1000.0 > cyc * (1.0 / field_freq)) and (num / 1000.0 < time + free_precc_time):
         lab = lab + '\n' r'B$_{1}$ is OFF'
         time_color = 'black'
     else:
