@@ -9,17 +9,17 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import cnames
 from matplotlib import animation
 
-N_trajectories = 1
+N_trajectories = 2
 phase = 0.0 # show initial phase of B1 field
 phase_of_2nd_B1_pulse = 0
-field_freq = 200.0
-Larmor_freq_H = 200.0
+field_freq = 30.0
+Larmor_freq_H = 30.0
 Nuclei_name = 'H'
-max_range = 4000
+max_range = 8000
 cyc = 2.0
 cyc1 = 2.0; cyc2 = 0
 
-free_precc_time = 0.01
+free_precc_time = 0.03
 time_cyc1 = cyc1 * 1.0 / Larmor_freq_H
 time= cyc * 1.0 / Larmor_freq_H
 time_final = 2 * time + free_precc_time
@@ -27,20 +27,21 @@ dt = time_final / max_range
 def nuclear_name(name):
     global gamma
     if name == 'H':
-        gamma = 267513000.0 #rad/s/T
+        gamma = -1.83247172E8 # For neutron  # 267513000.0  for proton #rad/s/T
     if name == 'F':
-        gamma = 251662000.0
+        gamma = -1.83247172E8
     return gamma
 
 nuclear_name('H')
-
+g = -1.83247172E8 # 267513000.0
 fac = 1 # for rotating field we have a factor of 0.5 but for linearly polarized we have a factor of 1.
-B_1 = fac * np.pi/2.0/time_cyc1/267513000.0
+B_1 = fac * np.pi/2.0/time_cyc1/g
 #dB_1 = (fac * np.pi/2.0/time_cyc1/267513000.0)*0.05
-B_1_initial = fac * np.pi/2.0/time_cyc1/267513000.0
+B_1_initial = fac * np.pi/2.0/time_cyc1/g #267513000.0
 
-B_0 = 2.0 * np.pi * Larmor_freq_H/267513000.0
-dB_0 = 0*B_0/10
+dm = 0
+B_0 = 2.0 * np.pi * Larmor_freq_H/g #267513000.0
+dB_0 = B_0/10
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -54,7 +55,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 def lorentz_deriv(y,t0):
-    global time, field_freq, B_1, B_0, gamma, dt, phase, cyc1, phase_of_2nd_B1_pulse
+    global time, field_freq, B_1, B_0, gamma, dt, phase, cyc1, phase_of_2nd_B1_pulse, dm
 
     w = gamma * B_1
     w_l = gamma * B_0
@@ -67,7 +68,7 @@ def lorentz_deriv(y,t0):
 
     if y[3] > time + free_precc_time:
         w = gamma * B_1
-        B_0 = 2.0 * np.pi * Larmor_freq_H / 267513000.0 + dB_0
+        B_0 = 2.0 * np.pi * Larmor_freq_H / g + dm*dB_0
 
 
 
@@ -134,6 +135,7 @@ for i in range(0,1,1):
     M_z_H.append(a[-1][2])
     print(gamma*B_1/np.pi/2.0)
     nuclear_name('F')
+    dm=1
     b = integrate.odeint(lorentz_deriv, x0[1], t)
     #print(gamma*B_1/np.pi/2.0)
     M_z_F.append(b[-1][2])
@@ -156,7 +158,10 @@ for i in range(0,len(a),1):
 # Set up figure & 3D axis for animation
 
 fig = plt.figure()
-ax = fig.add_axes([0, 0, 1, 1], projection='3d')
+ax = fig.add_subplot(1, 2, 1, projection='3d')
+ax2 = fig.add_subplot(2, 2, 2)
+ax3 = fig.add_subplot(2, 2, 4)
+#ax = fig.add_axes([0, 0, 1, 1], projection='3d')
 ax.set_aspect("auto")
 
 #ax.plot(a_x, a_y, a_z, linestyle = '--' ,linewidth=3, c='k')
@@ -170,8 +175,8 @@ subtitle = 'Perfect pi/2 Rotation'
   #         str(int(Larmor_freq)) + '   ' + 'f$_{mod}$=' + str(int(mod_larmor_fre))
 
 fig.suptitle(subtitle, fontsize=14, fontweight='bold')
-plt.figtext(0.26, 0.96, r'$\bullet$' + '  ' + 'Proton', fontsize=20, color='b', ha ='right')
-plt.figtext(0.185, 0.92, r'$\bullet$' + '  ' + 'Fluorine', fontsize=20, color='r', ha ='right')
+plt.figtext(0.26, 0.96, r'$\bullet$' + '  ' + 'EDM = 0', fontsize=20, color='b', ha ='right')
+plt.figtext(0.26, 0.92, r'$\bullet$' + '  ' + r'EDM $\ne$ 0', fontsize=20, color='r', ha ='right')
 #ax.text(1.1, 0, 0, 'X', (0,1,0),fontsize=20,color='blue')
 #ax.text(0, 1.1, 0, 'Y', (0,1,0),fontsize=20,color='green')
 #ax.text(0, 0, 1.1, 'Z', (0,1,0),fontsize=20,color='red')
@@ -214,6 +219,12 @@ colors = plt.cm.jet(np.linspace(0, 1, N_trajectories))
 lines = sum([ax.plot([], [], [], '-', c=c) for c in colors], [])
 pts = sum([ax.plot([], [], [], 'o', c=c)for c in colors], [])
 
+lines2D = sum([ax2.plot([], [], '-', c=c) for c in colors], [])
+pts2D = sum([ax2.plot([], [], 'o', c=c)for c in colors], [])
+
+lines2D_2 = sum([ax3.plot([], [], '-', c=c) for c in colors], [])
+pts2D_2 = sum([ax3.plot([], [], 'o', c=c)for c in colors], [])
+
 # prepare the axes limits
 ax.set_xlim((-1.1, 1.1))
 ax.set_ylim((-1.1, 1.1))
@@ -221,30 +232,55 @@ ax.set_zlim((-1.1, 1.1))
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
+
+ax2.set_xlim((0, time_final))
+ax2.set_ylim((-1.1, 1.1))
+ax2.grid(which = 'both')
+ax2.set_ylabel(r'M$_{z}$', fontsize = 14)
+ax2.set_xlabel('Time (s)', fontsize = 14)
+
+ax3.set_xlim((0, time_final))
+ax3.set_ylim((-90, 90))
+ax3.grid(which = 'both')
+ax3.set_ylabel(r'B$_{1}$ Phase', fontsize = 14)
+ax3.set_xlabel('Time (s)', fontsize = 14)
 # set point-of-view: specified by (altitude degrees, azimuth degrees)
 ax.view_init(20, 110)
 
 # initialization function: plot the background of each frame
 def init():
-    for line, pt in zip(lines, pts):
+    for line, pt, line2D, pt2D in zip(lines, pts, lines2D, pts2D):
         line.set_data([], [])
         line.set_3d_properties([])
 
         pt.set_data([], [])
         pt.set_3d_properties([])
-    return lines + pts
+
+        line2D.set_data([], [])
+        pt2D.set_data([], [])
+
+        #line2D_2.set_data([], [])
+        #pt2D_2.set_data([], [])
+
+    return lines + pts# + lines2D + pts2D + lines2D_2 + pts2D_2
 
 # animation function.  This will be called sequentially with the frame number
 def animate(i):
     global field_freq, cyc, dt
     # we'll step two time-steps per frame.  This leads to nice results.
-    i = (20 * i) % x_t.shape[1]
+    i = (100 * i) % x_t.shape[1]
 
-    for line, pt, xi in zip(lines, pts, x_t):
+    for line, pt, xi, line2D, pt2D, line2D_2, pt2D_2 in zip(lines, pts, x_t, lines2D, pts2D, lines2D_2, pts2D_2):
+    #for line, pt, xi in zip(lines, pts, x_t):
         x, y, z, tt = xi[:i].T
         line.set_data(x, y)
         line.set_3d_properties(z)
 
+        line2D.set_data(tt,z)
+        pt2D.set_data(tt[-1:], z[-1:])
+
+        line2D_2.set_data(tt, 90 *np.sin(2.0 * np.pi * field_freq * tt))
+        pt2D_2.set_data(tt[-1:],  90*np.sin(2.0 * np.pi * field_freq * tt[-1:]))
 
 
         pt.set_data(x[-1:], y[-1:])
@@ -254,23 +290,30 @@ def animate(i):
     num1 = '{:04.3f}'.format(num)
     lab = str(num1) + 'msec'
     if (num / 1000.0 > cyc * (1.0 / field_freq)) and (num / 1000.0 < time + free_precc_time):
-        lab = lab + '\n' r'B$_{1}$ is OFF'
+        param = z[-1:].tolist()
+        param.append(0)
+        lab = lab + '\n' r'B$_{1}$ is OFF' + '\n' + r'M$_{z}$:' + str(round(param[0], 2))
         time_color = 'black'
     else:
-        lab = lab + '\n' r'B$_{1}$ is ON'
+        param = z[-1:].tolist()
+        param.append(0)
+        lab = lab + '\n' r'B$_{1}$ is ON' + '\n' + r'M$_{z}$: ' + str(round(param[0], 2))
         time_color = 'red'
     fig.suptitle('Time = ' + lab, fontsize=14, fontweight='bold', color = time_color)
 
 
-    ax.view_init(30, -0.18 * i) # -1.435 fpr 2000 data point and fL = 200 Hz
+    ax.view_init(30, -0.018 * i) # -1.435 fpr 2000 data point and fL = 200 Hz
+    #ax.view_init(30, -0.18)
     fig.canvas.draw()
-    return lines + pts
+    return lines + pts #+ lines2D + pts2D
+
+
 
 # instantiate the animator.
-anim = animation.FuncAnimation(fig, animate, init_func=init, frames=2000, interval=30, blit=True) # it was 800
+anim = animation.FuncAnimation(fig, animate, init_func=init, frames=200, interval=30, blit=True) # it was 800
 
 # Save as mp4. This requires mplayer or ffmpeg to be installed
-#filename = 'Perfect pi/2 Rotation' + '.mp4'
-#anim.save(filename, fps=15, extra_args=['-vcodec', 'libx264'])
+filename = 'Demonstration_of_Ramsys Method of Separated Oscillating Fields' + '.mp4'
+anim.save(filename, fps=10, extra_args=['-vcodec', 'libx264'])
 
 plt.show()
