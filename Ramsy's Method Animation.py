@@ -284,7 +284,7 @@ def init():
 def animate(i):
     global field_freq, cyc, dt
     # we'll step two time-steps per frame.  This leads to nice results.
-    i = (100 * i) % x_t.shape[1]
+    i = (20 * i) % x_t.shape[1]
 
     for line, pt, xi, line2D, pt2D, line2D_2, pt2D_2, line2D_3, pt2D_3 in zip(lines, pts, x_t, lines2D, pts2D, lines2D_2, pts2D_2, lines2D_3, pts2D_3):
     #for line, pt, xi in zip(lines, pts, x_t):
@@ -332,7 +332,7 @@ def animate(i):
 anim = animation.FuncAnimation(fig, animate, init_func=init, frames=400, interval=30, blit=True) # it was 800
 
 # Save as mp4. This requires mplayer or ffmpeg to be installed
-filename = 'Demonstration_of_Ramsys Method of Separated Oscillating Fields_fame_400_30_20' + '.mp4'
-#anim.save(filename, fps=20, extra_args=['-vcodec', 'libx264'])
+filename = 'Demonstration_of_Ramsys Method of Separated Oscillating Fields_fame_frames_400_interval_30_fps_20_step_i_20' + '.mp4'
+anim.save(filename, fps=20, extra_args=['-vcodec', 'libx264'])
 
-plt.show()
+#plt.show()
