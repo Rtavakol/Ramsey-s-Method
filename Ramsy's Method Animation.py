@@ -19,7 +19,7 @@ max_range = 8000
 cyc = 2.0
 cyc1 = 2.0; cyc2 = 0
 
-free_precc_time = 0.03
+free_precc_time = 0.1
 time_cyc1 = cyc1 * 1.0 / Larmor_freq_H
 time= cyc * 1.0 / Larmor_freq_H
 time_final = 2 * time + free_precc_time
@@ -61,14 +61,19 @@ def lorentz_deriv(y,t0):
     w_l = gamma * B_0
     w1 = 2.0 * np.pi * field_freq
     """Compute the time-derivative of a Lorentz system."""
+    if y[3] < time:
+        w = gamma * B_1
+        B_0 = 2.0 * np.pi * Larmor_freq_H / g
+
     if (y[3] > time) and (y[3] < time + free_precc_time):
         w = 0.0
+        B_0 = 2.0 * np.pi * Larmor_freq_H / g + dm * dB_0
        # if (y[3]-time)< dt/6000:
         #    print (y, np.arctan2(y[0],y[1])*180/np.pi)
 
     if y[3] > time + free_precc_time:
         w = gamma * B_1
-        B_0 = 2.0 * np.pi * Larmor_freq_H / g + dm*dB_0
+        B_0 = 2.0 * np.pi * Larmor_freq_H / g
 
 
 
@@ -131,11 +136,12 @@ for i in range(0,1,1):
     B_1 =  B_1_initial #+ (i-5) * dB_1
     x_axis_B1.append(B_1/B_1_initial)
     nuclear_name('H')
+    dm=0
     a = integrate.odeint(lorentz_deriv, x0[0], t)
     M_z_H.append(a[-1][2])
     print(gamma*B_1/np.pi/2.0)
     nuclear_name('F')
-    dm=1
+    dm=0.2
     b = integrate.odeint(lorentz_deriv, x0[1], t)
     #print(gamma*B_1/np.pi/2.0)
     M_z_F.append(b[-1][2])
@@ -159,8 +165,9 @@ for i in range(0,len(a),1):
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 2, 1, projection='3d')
-ax2 = fig.add_subplot(2, 2, 2)
-ax3 = fig.add_subplot(2, 2, 4)
+ax2 = fig.add_subplot(3, 2, 2)
+ax3 = fig.add_subplot(3, 2, 4)
+ax4 = fig.add_subplot(3, 2, 6)
 #ax = fig.add_axes([0, 0, 1, 1], projection='3d')
 ax.set_aspect("auto")
 
@@ -222,8 +229,11 @@ pts = sum([ax.plot([], [], [], 'o', c=c)for c in colors], [])
 lines2D = sum([ax2.plot([], [], '-', c=c) for c in colors], [])
 pts2D = sum([ax2.plot([], [], 'o', c=c)for c in colors], [])
 
-lines2D_2 = sum([ax3.plot([], [], '-', c=c) for c in colors], [])
-pts2D_2 = sum([ax3.plot([], [], 'o', c=c)for c in colors], [])
+lines2D_3 = sum([ax3.plot([], [], '-', c=c) for c in colors], [])
+pts2D_3 = sum([ax3.plot([], [], 'o', c=c)for c in colors], [])
+
+lines2D_2 = sum([ax4.plot([], [], '-', c=c) for c in colors], [])
+pts2D_2 = sum([ax4.plot([], [], 'o', c=c)for c in colors], [])
 
 # prepare the axes limits
 ax.set_xlim((-1.1, 1.1))
@@ -237,13 +247,19 @@ ax2.set_xlim((0, time_final))
 ax2.set_ylim((-1.1, 1.1))
 ax2.grid(which = 'both')
 ax2.set_ylabel(r'M$_{z}$', fontsize = 14)
-ax2.set_xlabel('Time (s)', fontsize = 14)
+#ax2.set_xlabel('Time (s)', fontsize = 14)
 
 ax3.set_xlim((0, time_final))
-ax3.set_ylim((-90, 90))
+ax3.set_ylim((-1.1, 1.1))
 ax3.grid(which = 'both')
-ax3.set_ylabel(r'B$_{1}$ Phase', fontsize = 14)
-ax3.set_xlabel('Time (s)', fontsize = 14)
+ax3.set_ylabel(r'M$_{x}$', fontsize = 14)
+#ax3.set_xlabel('Time (s)', fontsize = 14)
+
+ax4.set_xlim((0, time_final))
+ax4.set_ylim((-180, 180))
+ax4.grid(which = 'both')
+ax4.set_ylabel(r'B$_{1}$ Phase', fontsize = 14)
+ax4.set_xlabel('Time (s)', fontsize = 14)
 # set point-of-view: specified by (altitude degrees, azimuth degrees)
 ax.view_init(20, 110)
 
@@ -270,7 +286,7 @@ def animate(i):
     # we'll step two time-steps per frame.  This leads to nice results.
     i = (100 * i) % x_t.shape[1]
 
-    for line, pt, xi, line2D, pt2D, line2D_2, pt2D_2 in zip(lines, pts, x_t, lines2D, pts2D, lines2D_2, pts2D_2):
+    for line, pt, xi, line2D, pt2D, line2D_2, pt2D_2, line2D_3, pt2D_3 in zip(lines, pts, x_t, lines2D, pts2D, lines2D_2, pts2D_2, lines2D_3, pts2D_3):
     #for line, pt, xi in zip(lines, pts, x_t):
         x, y, z, tt = xi[:i].T
         line.set_data(x, y)
@@ -279,8 +295,11 @@ def animate(i):
         line2D.set_data(tt,z)
         pt2D.set_data(tt[-1:], z[-1:])
 
-        line2D_2.set_data(tt, 90 *np.sin(2.0 * np.pi * field_freq * tt))
-        pt2D_2.set_data(tt[-1:],  90*np.sin(2.0 * np.pi * field_freq * tt[-1:]))
+        line2D_3.set_data(tt,x)
+        pt2D_3.set_data(tt[-1:], x[-1:])
+
+        line2D_2.set_data(tt, 180 * np.arctan2(np.sin(2.0 * np.pi * field_freq*tt),np.cos(2.0 * np.pi * field_freq*tt))/np.pi)
+        pt2D_2.set_data(tt[-1:], 180 * np.arctan2(np.sin(2.0 * np.pi * field_freq*tt[-1:]),np.cos(2.0 * np.pi * field_freq*tt[-1:]))/np.pi)
 
 
         pt.set_data(x[-1:], y[-1:])
@@ -310,10 +329,10 @@ def animate(i):
 
 
 # instantiate the animator.
-anim = animation.FuncAnimation(fig, animate, init_func=init, frames=200, interval=30, blit=True) # it was 800
+anim = animation.FuncAnimation(fig, animate, init_func=init, frames=400, interval=30, blit=True) # it was 800
 
 # Save as mp4. This requires mplayer or ffmpeg to be installed
-filename = 'Demonstration_of_Ramsys Method of Separated Oscillating Fields' + '.mp4'
-anim.save(filename, fps=10, extra_args=['-vcodec', 'libx264'])
+filename = 'Demonstration_of_Ramsys Method of Separated Oscillating Fields_fame_400_30_20' + '.mp4'
+#anim.save(filename, fps=20, extra_args=['-vcodec', 'libx264'])
 
 plt.show()
